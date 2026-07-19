@@ -1,0 +1,35 @@
+spring:
+
+  application:
+    name: cloudchat-backend
+    config:
+    import: optional:file:.env
+  
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+  
+  jpa:
+    hibernate: 
+      ddl-auto: update
+    show-sql: true
+
+  cache:
+    type: redis
+    redis:
+      host: 127.0.0.1
+      port: 6379
+      ssl:
+        enabled: false
+        time-to-live: 900000
+
+software:
+  jwt:
+    access:
+      secret: ${JWT_ACCESS_SECRET}
+      life: ${JWT_ACCESS_LIFE}
+    refresh:
+      secret: ${JWT_REFRESH_SECRET}
+      life: ${JWT_REFRESH_LIFE}
