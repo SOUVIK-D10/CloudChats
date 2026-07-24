@@ -22,20 +22,29 @@ public class Thread {
     private int creatorId;
     private String threadName;
     private String threadType;
+    @ElementCollection
+    private Set<Integer> messageingAllowedList;
     private LocalDateTime createdAt;
 
     public Thread() {
     }
-    public Thread(Set<Integer> participantIds, String threadName, String threadType, int creatorId){
+    public Thread(Set<Integer> participantIds, String threadName, String threadType, int creatorId,Set<Integer> messageingAllowedList){
         this.participantIds = participantIds;
         this.threadName = threadName;
         this.threadType = threadType;
         this.creatorId = creatorId;
         this.createdAt = LocalDateTime.now();
+        this.messageingAllowedList=messageingAllowedList;
 
     }
     public int getCreatorId() {
         return creatorId;
+    }
+    public Set<Integer> getMessageingAllowedList() {
+        return messageingAllowedList;
+    }
+    public void setMessageingAllowedList(Set<Integer> messageingAllowedList) {
+        this.messageingAllowedList = messageingAllowedList;
     }
     public void setCreatorId(int creatorId) {
         this.creatorId = creatorId;
@@ -51,6 +60,9 @@ public class Thread {
     }
     public void setParticipantIds(Set<Integer> participantIds) {
         this.participantIds = participantIds;
+    }
+    public void addParticipantIds(Integer participantId) {
+        this.participantIds.add(participantId);
     }
     public String getThreadName() {
         return threadName;

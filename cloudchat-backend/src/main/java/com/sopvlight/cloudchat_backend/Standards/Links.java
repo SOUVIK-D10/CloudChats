@@ -11,6 +11,7 @@ public class Links {
             "/swagger-ui.html",
             "/swagger-resources/**",
             "/webjars/**",
-            "/ws-chat/**"
+            "/ws-chat/**",
+            "/home/**"
     };
 }

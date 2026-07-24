@@ -1,29 +1,38 @@
 package com.sopvlight.cloudchat_backend.WebSockets.Config;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.messaging.simp.config.ChannelRegistration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
 
+import com.sopvlight.cloudchat_backend.Security.Auth.Filter.WebSocketAuthInterceptor;
+
 @Configuration
 @EnableWebSocketMessageBroker
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
+    @Autowired
+    private WebSocketAuthInterceptor authInterceptor;
+
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
-        // This is the URL the frontend will connect to: ws://localhost:8080/ws-chat
         registry.addEndpoint("/ws-chat")
-                .setAllowedOriginPatterns("*") // Allows cross-origin requests from your frontend
-                .withSockJS(); // Fallback for browsers that don't support WebSockets natively
+                .setAllowedOriginPatterns("*") 
+                .withSockJS(); 
     }
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry registry) {
-        // The prefix for outbound messages (Backend -> Frontend)
         registry.enableSimpleBroker("/topic");
-        
-        // The prefix for inbound messages (Frontend -> Backend via WebSocket, if you use it later)
         registry.setApplicationDestinationPrefixes("/app");
+    }
+
+    // THIS IS THE NEW PART: Registering the interceptor
+    @Override
+    public void configureClientInboundChannel(ChannelRegistration registration) {
+        registration.interceptors(authInterceptor);
     }
 }

@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CloudChats - Full Featured Client</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: { 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8' },
+                        dark: { 800: '#1e293b', 900: '#0f172a', 950: '#020617' }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- SockJS and STOMP CDNs -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        .custom-scroll::-webkit-scrollbar { width: 5px; }
+        .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        .animate-fade-in { animation: fadeIn 0.25s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="bg-dark-950 text-slate-100 h-screen flex overflow-hidden font-sans antialiased">
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- ================= AUTH CONTAINER ================= -->
+    <div id="auth-screen" class="fixed inset-0 z-40 bg-dark-950 flex items-center justify-center p-4">
+        <div class="bg-dark-900 border border-slate-800 w-full max-w-md rounded-2xl p-8 shadow-2xl animate-fade-in">
+            <div class="flex items-center justify-center gap-3 mb-6">
+                <div class="bg-brand-600 p-3 rounded-xl shadow-lg shadow-brand-500/20">
+                    <i data-lucide="cloud-lightning" class="w-8 h-8 text-white"></i>
+                </div>
+                <h1 class="text-2xl font-bold tracking-tight">CloudChats</h1>
+            </div>
+
+            <!-- Tab Buttons -->
+            <div class="flex bg-dark-800 p-1 rounded-xl mb-6 border border-slate-800">
+                <button id="tab-login-btn" onclick="switchAuthTab('login')" class="flex-1 py-2 text-sm font-semibold rounded-lg bg-brand-600 text-white transition-all">Login</button>
+                <button id="tab-register-btn" onclick="switchAuthTab('register')" class="flex-1 py-2 text-sm font-semibold rounded-lg text-slate-400 hover:text-white transition-all">Register</button>
+            </div>
+
+            <!-- Login Form -->
+            <form id="login-form" onsubmit="handleLogin(event)" class="space-y-4">
+                <div>
+                    <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1">Email</label>
+                    <input type="email" id="login-email" required class="w-full bg-dark-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+                </div>
+                <div>
+                    <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1">Password</label>
+                    <input type="password" id="login-password" required class="w-full bg-dark-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+                </div>
+                <button type="submit" class="w-full bg-brand-600 hover:bg-brand-500 text-white font-semibold py-3 rounded-xl transition-all shadow-lg shadow-brand-500/25 mt-2">
+                    Sign In
+                </button>
+            </form>
+
+            <!-- Register Form -->
+            <form id="register-form" onsubmit="handleRegister(event)" class="space-y-4 hidden">
+                <div>
+                    <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1">Username</label>
+                    <input type="text" id="reg-username" required class="w-full bg-dark-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+                </div>
+                <div>
+                    <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1">Email</label>
+                    <input type="email" id="reg-email" required class="w-full bg-dark-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+                </div>
+                <div>
+                    <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1">Password</label>
+                    <input type="password" id="reg-password" required class="w-full bg-dark-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+                </div>
+                <button type="submit" class="w-full bg-brand-600 hover:bg-brand-500 text-white font-semibold py-3 rounded-xl transition-all shadow-lg shadow-brand-500/25 mt-2">
+                    Create Account
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ================= MAIN APP INTERFACE ================= -->
+    <div id="app-screen" class="flex w-full h-full hidden">
+        
+        <!-- SIDEBAR -->
+        <aside class="w-80 bg-dark-900 border-r border-slate-800 flex flex-col shrink-0">
+            <!-- Sidebar Header -->
+            <div class="p-4 border-b border-slate-800 flex items-center justify-between">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-9 h-9 bg-brand-600 rounded-xl flex items-center justify-center font-bold text-white shadow-md">
+                        ☁️
+                    </div>
+                    <div>
+                        <h2 class="font-bold text-sm leading-tight">CloudChats</h2>
+                        <span id="user-display" class="text-xs text-slate-400">Not connected</span>
+                    </div>
+                </div>
+                <button onclick="handleLogout()" title="Logout" class="p-2 text-slate-400 hover:text-red-400 hover:bg-dark-800 rounded-lg transition-colors">
+                    <i data-lucide="log-out" class="w-4 h-4"></i>
+                </button>
+            </div>
+
+            <!-- Thread Category Tabs -->
+            <div class="flex border-b border-slate-800 bg-dark-950/50">
+                <button onclick="switchThreadCategory('PRIVATE')" id="cat-btn-PRIVATE" class="flex-1 py-3 text-xs font-bold border-b-2 border-brand-500 text-brand-500 transition-all flex items-center justify-center gap-1.5">
+                    <i data-lucide="user" class="w-3.5 h-3.5"></i> Direct
+                </button>
+                <button onclick="switchThreadCategory('GROUP')" id="cat-btn-GROUP" class="flex-1 py-3 text-xs font-bold border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition-all flex items-center justify-center gap-1.5">
+                    <i data-lucide="users" class="w-3.5 h-3.5"></i> Groups
+                </button>
+                <button onclick="switchThreadCategory('CHANNEL')" id="cat-btn-CHANNEL" class="flex-1 py-3 text-xs font-bold border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition-all flex items-center justify-center gap-1.5">
+                    <i data-lucide="hash" class="w-3.5 h-3.5"></i> Channels
+                </button>
+            </div>
+
+            <!-- Action Bar -->
+            <div class="p-3 border-b border-slate-800/60 flex items-center justify-between">
+                <span id="category-label" class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Private Messages</span>
+                <button onclick="openNewThreadModal()" class="flex items-center gap-1 bg-brand-600/20 hover:bg-brand-600/30 text-brand-400 border border-brand-500/30 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all">
+                    <i data-lucide="plus" class="w-3.5 h-3.5"></i> New
+                </button>
+            </div>
+
+            <!-- Thread List -->
+            <div id="thread-list" class="flex-1 overflow-y-auto custom-scroll p-2 space-y-1">
+                <!-- Thread Items Rendered Dynamically -->
+            </div>
+        </aside>
+
+        <!-- CHAT VIEWPORT -->
+        <main class="flex-1 flex flex-col bg-dark-950 relative">
+            
+            <!-- Empty State -->
+            <div id="empty-chat-view" class="flex-1 flex flex-col items-center justify-center text-slate-500 p-8">
+                <div class="w-16 h-16 bg-dark-900 border border-slate-800 rounded-2xl flex items-center justify-center mb-4 text-slate-600">
+                    <i data-lucide="message-square" class="w-8 h-8"></i>
+                </div>
+                <h3 class="text-lg font-semibold text-slate-300">No Chat Selected</h3>
+                <p class="text-xs text-slate-500 mt-1">Select a conversation or start a new thread to begin messaging.</p>
+            </div>
+
+            <!-- Active Chat Interface -->
+            <div id="active-chat-view" class="flex-1 flex flex-col h-full hidden">
+                
+                <!-- Chat Header -->
+                <header class="h-16 border-b border-slate-800 bg-dark-900/60 backdrop-blur-md px-6 flex items-center justify-between shrink-0">
+                    <div class="flex items-center gap-3">
+                        <div id="active-chat-icon" class="w-10 h-10 rounded-xl bg-brand-600/20 border border-brand-500/30 text-brand-400 flex items-center justify-center font-bold">
+                            #
+                        </div>
+                        <div>
+                            <h3 id="active-chat-name" class="font-bold text-sm text-slate-100">Thread Name</h3>
+                            <p id="active-chat-participants" class="text-xs text-slate-400 truncate max-w-md">Participants...</p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <button id="add-member-btn" onclick="openAddMemberModal()" title="Add Member" class="p-2 text-slate-400 hover:text-white hover:bg-dark-800 rounded-lg transition-colors hidden">
+                            <i data-lucide="user-plus" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </header>
+
+                <!-- Messages Scroll Box -->
+                <div id="message-container" class="flex-1 overflow-y-auto custom-scroll p-6 space-y-4">
+                    <!-- Messages Rendered Dynamically -->
+                </div>
+
+                <!-- Input Footer -->
+                <footer class="p-4 border-t border-slate-800 bg-dark-900/40 shrink-0">
+                    <form onsubmit="handleSendMessage(event)" class="flex gap-3 items-center">
+                        <input type="text" id="message-input" placeholder="Write a message..." required autocomplete="off"
+                            class="flex-1 bg-dark-900 border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all">
+                        <button type="submit" class="bg-brand-600 hover:bg-brand-500 text-white p-3 rounded-xl transition-all shadow-lg shadow-brand-500/20 flex items-center justify-center shrink-0">
+                            <i data-lucide="send" class="w-4 h-4"></i>
+                        </button>
+                    </form>
+                </footer>
+            </div>
+        </main>
+    </div>
+
+    <!-- ================= MODALS ================= -->
+
+    <!-- Create Thread Modal -->
+    <div id="create-thread-modal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+        <div class="bg-dark-900 border border-slate-800 w-full max-w-md rounded-2xl p-6 shadow-2xl animate-fade-in">
+            <div class="flex justify-between items-center mb-4">
+                <h3 id="modal-title" class="font-bold text-base">New Thread</h3>
+                <button onclick="closeModal('create-thread-modal')" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <form id="create-thread-form" onsubmit="handleCreateThread(event)" class="space-y-4">
+                <div id="field-thread-name" class="hidden">
+                    <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1">Thread Name</label>
+                    <input type="text" id="input-thread-name" class="w-full bg-dark-800 border border-slate-700 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+                </div>
+                <div id="field-usernames">
+                    <label id="label-usernames" class="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1">Username</label>
+                    <input type="text" id="input-usernames" placeholder="e.g. alice or alice, bob" class="w-full bg-dark-800 border border-slate-700 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+                    <p class="text-[11px] text-slate-500 mt-1">Separate multiple usernames with commas for groups.</p>
+                </div>
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="closeModal('create-thread-modal')" class="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white">Cancel</button>
+                    <button type="submit" class="bg-brand-600 hover:bg-brand-500 text-white px-4 py-2 rounded-xl text-xs font-semibold transition-all">Create</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Member Modal -->
+    <div id="add-member-modal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+        <div class="bg-dark-900 border border-slate-800 w-full max-w-sm rounded-2xl p-6 shadow-2xl animate-fade-in">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="font-bold text-base">Add Member</h3>
+                <button onclick="closeModal('add-member-modal')" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <form onsubmit="handleAddMember(event)" class="space-y-4">
+                <div>
+                    <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1">Username</label>
+                    <input type="text" id="input-add-username" required placeholder="User to add..." class="w-full bg-dark-800 border border-slate-700 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+                </div>
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="closeModal('add-member-modal')" class="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white">Cancel</button>
+                    <button type="submit" class="bg-brand-600 hover:bg-brand-500 text-white px-4 py-2 rounded-xl text-xs font-semibold transition-all">Add Participant</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ================= JAVASCRIPT LOGIC ================= -->
+    <script>
+        const API_BASE = 'https://zack-submammary-jacquiline.ngrok-free.dev';
+        
+        let state = {
+            accessToken: localStorage.getItem('access_token') || null,
+            refreshToken: localStorage.getItem('refresh_token') || null,
+            currentUserEmail: localStorage.getItem('current_email') || null,
+            currentCategory: 'PRIVATE', // PRIVATE | GROUP | CHANNEL
+            activeThreadId: null,
+            activeThreadData: null,
+            stompClient: null,
+            subscription: null
+        };
+
+        // Initialize App
+        window.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            if (state.accessToken) {
+                showAppScreen();
+            } else {
+                showAuthScreen();
+            }
+        });
+
+        // ================= AUTH HANDLERS =================
+        function switchAuthTab(tab) {
+            const loginForm = document.getElementById('login-form');
+            const regForm = document.getElementById('register-form');
+            const loginBtn = document.getElementById('tab-login-btn');
+            const regBtn = document.getElementById('tab-register-btn');
+
+            if (tab === 'login') {
+                loginForm.classList.remove('hidden');
+                regForm.classList.add('hidden');
+                loginBtn.className = 'flex-1 py-2 text-sm font-semibold rounded-lg bg-brand-600 text-white transition-all';
+                regBtn.className = 'flex-1 py-2 text-sm font-semibold rounded-lg text-slate-400 hover:text-white transition-all';
+            } else {
+                regForm.classList.remove('hidden');
+                loginForm.classList.add('hidden');
+                regBtn.className = 'flex-1 py-2 text-sm font-semibold rounded-lg bg-brand-600 text-white transition-all';
+                loginBtn.className = 'flex-1 py-2 text-sm font-semibold rounded-lg text-slate-400 hover:text-white transition-all';
+            }
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+
+            try {
+                const res = await apiRequest('/user/login', 'POST', { email, password, username: '' }, false);
+                state.accessToken = res.accessToken;
+                state.refreshToken = res.refreshToken;
+                state.currentUserEmail = email;
+
+                localStorage.setItem('access_token', res.accessToken);
+                localStorage.setItem('refresh_token', res.refreshToken);
+                localStorage.setItem('current_email', email);
+
+                toast('Successfully logged in!', 'success');
+                showAppScreen();
+            } catch (err) {
+                toast(err.message || 'Login failed', 'error');
+            }
+        }
+
+        async function handleRegister(e) {
+            e.preventDefault();
+            const username = document.getElementById('reg-username').value;
+            const email = document.getElementById('reg-email').value;
+            const password = document.getElementById('reg-password').value;
+
+            try {
+                await apiRequest('/user/register', 'POST', { username, email, password }, false);
+                toast('Account created! Please log in.', 'success');
+                switchAuthTab('login');
+            } catch (err) {
+                toast(err.message || 'Registration failed', 'error');
+            }
+        }
+
+        async function handleLogout() {
+            try {
+                if (state.accessToken) {
+                    await apiRequest('/user/logout', 'POST', null, true);
+                }
+            } catch (e) { console.warn(e); }
+
+            if (state.stompClient) {
+                state.stompClient.disconnect();
+            }
+
+            localStorage.clear();
+            state = { accessToken: null, refreshToken: null, currentUserEmail: null, currentCategory: 'PRIVATE', activeThreadId: null, activeThreadData: null, stompClient: null, subscription: null };
+            showAuthScreen();
+            toast('Logged out successfully', 'info');
+        }
+
+        function showAuthScreen() {
+            document.getElementById('auth-screen').classList.remove('hidden');
+            document.getElementById('app-screen').classList.add('hidden');
+        }
+
+        function showAppScreen() {
+            document.getElementById('auth-screen').classList.add('hidden');
+            document.getElementById('app-screen').classList.remove('hidden');
+            document.getElementById('user-display').innerText = state.currentUserEmail;
+            
+            initWebSocket();
+            fetchThreads();
+        }
+
+        // ================= WEBSOCKET ENGINE =================
+        function initWebSocket() {
+            const socket = new SockJS(`${API_BASE}/ws-chat`);
+            state.stompClient = Stomp.over(socket);
+            state.stompClient.debug = null; // Suppress console logs
+
+            const headers = {
+                'Authorization': `Bearer ${state.accessToken}`
+            };
+
+            state.stompClient.connect(headers, (frame) => {
+                console.log('Connected to STOMP broker.');
+                if (state.activeThreadId) {
+                    subscribeToThread(state.activeThreadId);
+                }
+            }, (error) => {
+                console.error('STOMP Connection Error:', error);
+                toast('Real-time connection lost. Reconnecting...', 'error');
+                setTimeout(initWebSocket, 5000);
+            });
+        }
+
+        function subscribeToThread(threadId) {
+            if (state.subscription) {
+                state.subscription.unsubscribe();
+            }
+
+            if (state.stompClient && state.stompClient.connected) {
+                state.subscription = state.stompClient.subscribe(`/topic/thread/${threadId}`, (message) => {
+                    const msgDTO = JSON.parse(message.body);
+                    appendMessageToView(msgDTO);
+                });
+            }
+        }
+
+        // ================= THREAD MANAGEMENT =================
+        function switchThreadCategory(cat) {
+            state.currentCategory = cat;
+            
+            ['PRIVATE', 'GROUP', 'CHANNEL'].forEach(c => {
+                const btn = document.getElementById(`cat-btn-${c}`);
+                if (c === cat) {
+                    btn.className = 'flex-1 py-3 text-xs font-bold border-b-2 border-brand-500 text-brand-500 transition-all flex items-center justify-center gap-1.5';
+                } else {
+                    btn.className = 'flex-1 py-3 text-xs font-bold border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition-all flex items-center justify-center gap-1.5';
+                }
+            });
+
+            const labels = { PRIVATE: 'Private Messages', GROUP: 'Group Chats', CHANNEL: 'Channels' };
+            document.getElementById('category-label').innerText = labels[cat];
+
+            fetchThreads();
+        }
+
+        async function fetchThreads() {
+            const endpoint = `/api/threads/all/${state.currentCategory.toLowerCase()}`;
+            try {
+                const threads = await apiRequest(endpoint, 'GET');
+                renderSidebarThreads(threads);
+            } catch (err) {
+                toast(err.message || 'Failed to fetch threads', 'error');
+            }
+        }
+
+        function renderSidebarThreads(threads) {
+            const listEl = document.getElementById('thread-list');
+            listEl.innerHTML = '';
+
+            if (threads.length === 0) {
+                listEl.innerHTML = `<div class="p-4 text-center text-xs text-slate-500">No conversations here yet.</div>`;
+                return;
+            }
+
+            threads.forEach(t => {
+                const isActive = t.id === state.activeThreadId;
+                const div = document.createElement('div');
+                div.className = `p-3 rounded-xl cursor-pointer flex items-center gap-3 transition-all ${
+                    isActive ? 'bg-brand-600/20 border border-brand-500/30 text-white' : 'hover:bg-dark-800 text-slate-300'
+                }`;
+                div.onclick = () => openThread(t.id);
+
+                const icon = t.type === 'PRIVATE' ? 'user' : (t.type === 'GROUP' ? 'users' : 'hash');
+
+                div.innerHTML = `
+                    <div class="w-8 h-8 rounded-lg bg-dark-800 border border-slate-700/50 flex items-center justify-center text-slate-400 shrink-0">
+                        <i data-lucide="${icon}" class="w-4 h-4"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="font-semibold text-xs truncate">${t.name}</div>
+                        <div class="text-[10px] text-slate-500 uppercase tracking-wider">${t.type}</div>
+                    </div>
+                `;
+                listEl.appendChild(div);
+            });
+            lucide.createIcons();
+        }
+
+        async function openThread(id) {
+            state.activeThreadId = id;
+            try {
+                const threadData = await apiRequest(`/api/threads/open/${id}`, 'GET');
+                state.activeThreadData = threadData;
+
+                // UI updates
+                document.getElementById('empty-chat-view').classList.add('hidden');
+                document.getElementById('active-chat-view').classList.remove('hidden');
+
+                document.getElementById('active-chat-name').innerText = threadData.name;
+                
+                const participants = threadData.participant_usernames ? Array.from(threadData.participant_usernames).join(', ') : 'Channel Members';
+                document.getElementById('active-chat-participants').innerText = participants;
+
+                // Add member button visibility
+                const addBtn = document.getElementById('add-member-btn');
+                if (threadData.type === 'GROUP' || threadData.type === 'CHANNEL') {
+                    addBtn.classList.remove('hidden');
+                } else {
+                    addBtn.classList.add('hidden');
+                }
+
+                // Render Messages History
+                renderMessageHistory(threadData.messages || []);
+
+                // Subscribe WS
+                subscribeToThread(id);
+
+                // Re-render sidebar to highlight active item
+                fetchThreads();
+
+            } catch (err) {
+                toast(err.message || 'Could not open thread', 'error');
+            }
+        }
+
+        // ================= MESSAGING =================
+        function renderMessageHistory(messages) {
+            const container = document.getElementById('message-container');
+            container.innerHTML = '';
+            messages.forEach(msg => appendMessageToView(msg, false));
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function appendMessageToView(msg, autoScroll = true) {
+            const container = document.getElementById('message-container');
+            
+            // Derive if message is sent by currentUser (comparing against user email/name)
+            const isMine = msg.sender_username === state.currentUserEmail;
+
+            const timeStr = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+            const wrapper = document.createElement('div');
+            wrapper.className = `flex flex-col max-w-[70%] ${isMine ? 'ml-auto items-end' : 'mr-auto items-start'} animate-fade-in`;
+
+            const senderLabel = isMine ? '' : `<span class="text-[10px] font-bold text-slate-400 mb-1 ml-1">${msg.sender_username}</span>`;
+            
+            const bubbleStyle = isMine 
+                ? 'bg-brand-600 text-white rounded-2xl rounded-br-sm' 
+                : 'bg-dark-900 border border-slate-800 text-slate-200 rounded-2xl rounded-bl-sm';
+
+            wrapper.innerHTML = `
+                ${senderLabel}
+                <div class="px-4 py-2.5 text-sm ${bubbleStyle} shadow-md break-words">
+                    ${escapeHtml(msg.content)}
+                </div>
+                <span class="text-[9px] text-slate-500 mt-1 px-1">${timeStr}</span>
+            `;
+
+            container.appendChild(wrapper);
+
+            if (autoScroll) {
+                container.scrollTop = container.scrollHeight;
+            }
+        }
+
+        async function handleSendMessage(e) {
+            e.preventDefault();
+            const input = document.getElementById('message-input');
+            const content = input.value.trim();
+
+            if (!content || !state.activeThreadId) return;
+
+            input.value = '';
+
+            try {
+                await apiRequest('/api/messages/send', 'POST', {
+                    threadId: state.activeThreadId,
+                    content: content
+                });
+            } catch (err) {
+                toast(err.message || 'Failed to send message', 'error');
+            }
+        }
+
+        // ================= MODAL HANDLERS =================
+        function openNewThreadModal() {
+            const modal = document.getElementById('create-thread-modal');
+            const nameField = document.getElementById('field-thread-name');
+            const usernamesField = document.getElementById('field-usernames');
+            const labelUsernames = document.getElementById('label-usernames');
+            
+            document.getElementById('create-thread-form').reset();
+            document.getElementById('modal-title').innerText = `New ${state.currentCategory}`;
+
+            if (state.currentCategory === 'PRIVATE') {
+                nameField.classList.add('hidden');
+                usernamesField.classList.remove('hidden');
+                labelUsernames.innerText = 'Username to Chat With';
+            } else if (state.currentCategory === 'GROUP') {
+                nameField.classList.remove('hidden');
+                usernamesField.classList.remove('hidden');
+                labelUsernames.innerText = 'Usernames (Comma Separated)';
+            } else { // CHANNEL
+                nameField.classList.remove('hidden');
+                usernamesField.classList.add('hidden');
+            }
+
+            modal.classList.remove('hidden');
+        }
+
+        async function handleCreateThread(e) {
+            e.preventDefault();
+            const name = document.getElementById('input-thread-name').value.trim();
+            const rawUsernames = document.getElementById('input-usernames').value.trim();
+            const usernames = rawUsernames.split(',').map(s => s.trim()).filter(Boolean);
+
+            try {
+                if (state.currentCategory === 'PRIVATE') {
+                    await apiRequest('/api/threads/create/private', 'POST', { username: usernames[0] });
+                } else if (state.currentCategory === 'GROUP') {
+                    await apiRequest('/api/threads/create/group', 'POST', { name, usernames });
+                } else {
+                    await apiRequest('/api/threads/create/channel', 'POST', { name });
+                }
+
+                toast('Thread created successfully!', 'success');
+                closeModal('create-thread-modal');
+                fetchThreads();
+            } catch (err) {
+                toast(err.message || 'Creation failed', 'error');
+            }
+        }
+
+        function openAddMemberModal() {
+            document.getElementById('add-member-modal').classList.remove('hidden');
+        }
+
+        async function handleAddMember(e) {
+            e.preventDefault();
+            const username = document.getElementById('input-add-username').value.trim();
+            if (!username || !state.activeThreadId) return;
+
+            try {
+                await apiRequest(`/api/threads/${state.activeThreadId}/add/${username}`, 'PATCH');
+                toast(`Added ${username} to thread!`, 'success');
+                closeModal('add-member-modal');
+                openThread(state.activeThreadId); // Refresh
+            } catch (err) {
+                toast(err.message || 'Failed to add member', 'error');
+            }
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.add('hidden');
+        }
+
+        // ================= HTTP CLIENT & UTILS =================
+        async function apiRequest(path, method = 'GET', body = null, authRequired = true) {
+            const headers = { 'Content-Type': 'application/json' };
+            if (authRequired && state.accessToken) {
+                headers['Authorization'] = `Bearer ${state.accessToken}`;
+            }
+
+            const opts = { method, headers };
+            if (body) opts.body = JSON.stringify(body);
+
+            let response = await fetch(`${API_BASE}${path}`, opts);
+
+            // Automatic Refresh Token Handling
+            if (response.status === 401 && authRequired && state.refreshToken) {
+                const refreshed = await attemptTokenRefresh();
+                if (refreshed) {
+                    headers['Authorization'] = `Bearer ${state.accessToken}`;
+                    response = await fetch(`${API_BASE}${path}`, opts);
+                }
+            }
+
+            if (!response.ok) {
+                const errText = await response.text();
+                let errMsg = 'An error occurred';
+                try {
+                    const parsed = JSON.parse(errText);
+                    errMsg = parsed.message || parsed.error || errText;
+                } catch (e) {
+                    errMsg = errText || errMsg;
+                }
+                throw new Error(errMsg);
+            }
+
+            const text = await response.text();
+            return text ? JSON.parse(text) : {};
+        }
+
+        async function attemptTokenRefresh() {
+            try {
+                const res = await fetch(`${API_BASE}/user/refresh`, {
+                    method: 'POST',
+                    headers: { 'refresh-token': state.refreshToken }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    state.accessToken = data.accessToken;
+                    state.refreshToken = data.refreshToken;
+                    localStorage.setItem('access_token', data.accessToken);
+                    localStorage.setItem('refresh_token', data.refreshToken);
+                    return true;
+                }
+            } catch (e) { console.error('Refresh token error:', e); }
+            
+            handleLogout();
+            return false;
+        }
+
+        function toast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const el = document.createElement('div');
+            
+            const bgMap = {
+                success: 'bg-emerald-600 text-white',
+                error: 'bg-rose-600 text-white',
+                info: 'bg-brand-600 text-white'
+            };
+
+            el.className = `px-4 py-3 rounded-xl shadow-xl text-xs font-semibold flex items-center gap-2 pointer-events-auto animate-fade-in ${bgMap[type]}`;
+            el.innerText = message;
+
+            container.appendChild(el);
+            setTimeout(() => el.remove(), 4000);
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
+    </script>
+</body>
+</html>

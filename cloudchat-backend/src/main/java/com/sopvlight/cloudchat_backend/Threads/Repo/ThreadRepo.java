@@ -17,8 +17,8 @@ public interface ThreadRepo extends JpaRepository<Thread, Long> {
     @Query("SELECT t FROM Thread t WHERE t.id = :id AND :userId MEMBER OF t.participantIds")
     Optional<Thread> findByIdAndParticipantId(@Param("id") Long id, @Param("userId") int userId);
 
-    @Query("SELECT t FROM Thread t WHERE :userId MEMBER OF t.participantIds")
-    List<Thread> findAllForMy(@Param("userId") int userId);
+    @Query("SELECT t FROM Thread t WHERE :userId MEMBER OF t.participantIds AND t.threadType = :type")
+    List<Thread> findAllForMy(@Param("userId") int userId, @Param("type") String type);
 
     // Optional<Thread> findByIdAndParticipantId(Long id, int userId);
 
