@@ -9,7 +9,7 @@ public record MessageDTO(
         String sender_username,
         LocalDateTime timestamp,
         boolean isEdited,
-        boolean isDeleted,
+        // boolean isDeleted,
         boolean isPinned,
         boolean isRead,
         boolean isStarred) {

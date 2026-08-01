@@ -18,12 +18,12 @@ public class ThreadPermissions {
     private boolean canChangeThreadName;    
     private boolean canAddMembers;    
     private boolean canInviteMembers;    
-    private boolean canRemoveMemebrs;
+    private boolean canRemoveMembers;
     private boolean canChangeThreadDescription; 
     private boolean canPinMessages;
     private boolean canForceDeleteMessages;
     public ThreadPermissions(Long id, int userId, Long threadId, boolean canSendMessage, boolean canChangeThreadName,
-            boolean canAddMembers, boolean canInviteMembers, boolean canRemoveMemebrs,
+            boolean canAddMembers, boolean canInviteMembers, boolean canRemoveMembers,
             boolean canChangeThreadDescription, boolean canPinMessages, boolean canForceDeleteMessages) {
         this.id = id;
         this.userId = userId;
@@ -32,7 +32,7 @@ public class ThreadPermissions {
         this.canChangeThreadName = canChangeThreadName;
         this.canAddMembers = canAddMembers;
         this.canInviteMembers = canInviteMembers;
-        this.canRemoveMemebrs = canRemoveMemebrs;
+        this.canRemoveMembers = canRemoveMembers;
         this.canChangeThreadDescription = canChangeThreadDescription;
         this.canPinMessages = canPinMessages;
         this.canForceDeleteMessages = canForceDeleteMessages;
@@ -73,11 +73,11 @@ public class ThreadPermissions {
     public void setCanInviteMembers(boolean canInviteMembers) {
         this.canInviteMembers = canInviteMembers;
     }
-    public boolean isCanRemoveMemebrs() {
-        return canRemoveMemebrs;
+    public boolean isCanRemoveMembers() {
+        return canRemoveMembers;
     }
-    public void setCanRemoveMemebrs(boolean canRemoveMemebrs) {
-        this.canRemoveMemebrs = canRemoveMemebrs;
+    public void setCanRemoveMembers(boolean canRemoveMembers) {
+        this.canRemoveMembers = canRemoveMembers;
     }
     public boolean isCanChangeThreadDescription() {
         return canChangeThreadDescription;

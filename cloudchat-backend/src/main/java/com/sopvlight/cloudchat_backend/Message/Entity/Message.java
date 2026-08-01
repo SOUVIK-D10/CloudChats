@@ -93,6 +93,7 @@ public class Message {
 
     public void edited() {
         this.isEdited = true;
+        this.timestamp = LocalDateTime.now();
     }
 
     public void deleted() {

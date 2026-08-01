@@ -22,4 +22,14 @@ public class BroadcastService {
         // 3. Broadcast the saved payload to anyone subscribed to that topic
         messagingTemplate.convertAndSend(destination, dto);
     }
+    public void sendEditedMessage(Long threadId, MessageDTO dto) {
+        // 1. Save the message to PostgreSQL via Spring Data JPA
+        // Message savedMessage = messageService.saveMessage(request);
+        
+        // 2. Define the exact WebSocket topic channel for this specific thread
+        String destination = "/topic/thread/" + threadId+"/edited/"+dto.id();
+
+        // 3. Broadcast the saved payload to anyone subscribed to that topic
+        messagingTemplate.convertAndSend(destination, dto);
+    }
 }

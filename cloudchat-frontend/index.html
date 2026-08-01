@@ -1,88 +1,12 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>CloudChat</title>
-    <!-- Phosphor Icons CDN for clean, minimalist icons -->
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    <link rel="stylesheet" href="style.css">
-</head>
-<body>
-    <!-- LOGIN OVERLAY -->
-<div id="login-overlay" class="login-overlay">
-    <div class="login-card">
-        <h2 class="logo" style="font-size: 2rem; margin-bottom: 0.5rem; text-align: center;">CloudChat</h2>
-        <p style="text-align: center; color: var(--text-muted); margin-bottom: 2rem;">Sign in to continue</p>
-        
-        <form id="login-form">
-            <div class="form-group">
-                <label>Email</label>
-                <input type="email" id="login-email" required placeholder="name@example.com">
-            </div>
-            <div class="form-group">
-                <label>Username</label>
-                <input type="text" id="login-username" required placeholder="Your username">
-            </div>
-            <div class="form-group">
-                <label>Password</label>
-                <input type="password" id="login-password" required placeholder="••••••••">
-            </div>
-            <button type="submit" class="btn-primary">Sign In</button>
-            <div id="login-error" class="error-message"></div>
-        </form>
-    </div>
-</div>
-    <div class="app-container">
-        <!-- LEFT SIDEBAR -->
-        <aside class="sidebar">
-            <header class="sidebar-header">
-                <h1 class="logo">CloudChat</h1>
-                <button class="btn-add" title="New Chat"><i class="ph ph-plus"></i></button>
-            </header>
-
-            <div class="search-container">
-                <i class="ph ph-magnifying-glass search-icon"></i>
-                <input type="text" placeholder="Search conversations..." class="search-input">
-            </div>
-
-            <nav class="tabs" id="tabs">
-                <button class="tab active" data-tab="PRIVATE">
-                    <i class="ph ph-user"></i> Direct
-                </button>
-                <button class="tab" data-tab="GROUP">
-                    <i class="ph ph-users"></i> Groups
-                </button>
-                <button class="tab" data-tab="CHANNEL">
-                    <i class="ph ph-hash"></i> Channels
-                </button>
-            </nav>
-
-            <div class="thread-list" id="thread-list">
-                <!-- Threads injected via JavaScript -->
-            </div>
-        </aside>
-
-        <!-- MAIN CHAT AREA -->
-        <main class="chat-area">
-            <header class="chat-header" id="chat-header">
-                <!-- Header injected via JavaScript -->
-            </header>
-
-            <div class="messages-container" id="messages-container">
-                <!-- Messages injected via JavaScript -->
-            </div>
-
-            <div class="input-area">
-                <div class="input-wrapper">
-                    <button class="btn-icon"><i class="ph ph-paperclip"></i></button>
-                    <textarea id="message-input" placeholder="Type a message..." rows="1"></textarea>
-                    <button class="btn-send" id="btn-send"><i class="ph ph-paper-plane-right"></i></button>
-                </div>
-            </div>
-        </main>
-    </div>
-
-    <script src="app.js"></script>
-</body>
+  </head>
+  <body class="bg-slate-50">
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
 </html>

@@ -3,6 +3,7 @@ package com.sopvlight.cloudchat_backend.Threads.Controller;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -56,8 +57,13 @@ public class ThreadController {
         return new ResponseEntity<>(threadService.createChannelThread(details.getUserId(),request.name()),HttpStatus.CREATED);
     }
     @PatchMapping("/{threadId}/add/{username}")
-    public ResponseEntity<?> addMember(Long threadId,String username,@AuthenticationPrincipal UserData details) throws GeneralException{
+    public ResponseEntity<?> addMember(@PathVariable Long threadId,@PathVariable String username,@AuthenticationPrincipal UserData details) throws GeneralException{
         threadService.addMember(threadId,username,details.getUserId());
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+    @DeleteMapping("/cut/{threadId}")
+    public ResponseEntity<?> cutThread(@AuthenticationPrincipal UserData details,@PathVariable Long threadId) throws GeneralException{
+        threadService.deleteThread(details.getUserId(), threadId);
         return new ResponseEntity<>(HttpStatus.OK);
     }
 }

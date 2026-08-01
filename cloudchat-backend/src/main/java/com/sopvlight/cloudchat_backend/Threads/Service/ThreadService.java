@@ -5,6 +5,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -29,6 +31,7 @@ public class ThreadService {
     private ThreadRepo threadRepo;
     private UserService userService;
     private MessageService messageService;
+    private final Logger log = LoggerFactory.getLogger(ThreadService.class);
     @Autowired
     public ThreadService(ThreadRepo threadRepo, UserService userService,MessageService messageService) {
         this.threadRepo = threadRepo;
@@ -40,6 +43,7 @@ public class ThreadService {
         Set<Integer>  participantsId = new HashSet<>();
         participantsId.add(userId);
         participantsId.add(otherUserId);
+        log.info("Creating private thread for userId: {} and otherUserId: {}, in set {}", userId, otherUserId, participantsId);
         Thread thread = new Thread(participantsId, "Private Chat", ThreadConstant.THREAD_TYPE_PRIVATE, userId, participantsId);
         thread = threadRepo.save(thread);
         return thread.getId();
@@ -48,7 +52,14 @@ public class ThreadService {
         List<Thread> list = threadRepo.findAllForMy(userId,type);
         List<ThreadListItemDTO> listDTO = new ArrayList<>();
         for(Thread t:list){
-            listDTO.add(new ThreadListItemDTO(t.getId(), t.getThreadName(), t.getThreadType()));
+            String threadName = t.getThreadName();
+            if(t.getThreadType().equals(ThreadConstant.THREAD_TYPE_PRIVATE)){
+                int otherUserId = t.getParticipantIds().stream().filter(id -> id != userId).findFirst().orElse(-1);
+                try {
+                    threadName = userService.getUsernameByUserId(otherUserId);
+                } catch (GeneralException e) {}
+            }
+            listDTO.add(new ThreadListItemDTO(t.getId(), threadName, t.getThreadType()));
         }
         return listDTO;
     }
@@ -56,10 +67,10 @@ public class ThreadService {
         Thread thread = threadRepo.findByIdAndParticipantId(id, userId)
         .orElseThrow(() -> new GeneralException("400:Thread with ID " + id + " not found or you are not a participant."));
         List<MessageDTO> list = messageService.getMessageHistory(id);
-        Set<String> usernames = new HashSet<>();
-        for(int i:thread.getParticipantIds()){
-            usernames.add(userService.getUsernameByUserId(i));
-        }
+        Set<String> usernames = userService.getUsernameByUserId(thread.getParticipantIds());
+        // for(int i:thread.getParticipantIds()){
+        //     usernames.add(userService.getUsernameByUserId(i));
+        // }
         OpenedThreadDTO dto = new OpenedThreadDTO(id,thread.getThreadName(), thread.getThreadType(),usernames,list);
         return dto;
     }
@@ -101,7 +112,7 @@ public class ThreadService {
         Thread thread = threadRepo.findByIdAndParticipantId(threadId, senderId).orElseThrow(() ->
             new GeneralException("400: You are either not a participant or This thread does not exists")
         );
-        if(thread.getMessageingAllowedList().contains(senderId)) throw new GeneralException("401:You are Not permitted to send messages in this thread");
+        if(!thread.getMessageingAllowedList().contains(senderId)) throw new GeneralException("401:You are Not permitted to send messages in this thread");
     }
     @Transactional
     public void addMember(Long threadId, String username, int userId) throws GeneralException {
@@ -111,6 +122,10 @@ public class ThreadService {
         if(thread.getThreadType().equals(ThreadConstant.THREAD_TYPE_PRIVATE)) throw new GeneralException("400: Action not possible");
         if(thread.getThreadType().equals(ThreadConstant.THREAD_TYPE_GROUP) && thread.getMessageingAllowedList().contains(userId)) throw new GeneralException("401: Action not permitted");
         thread.addParticipantIds(newParticipantId);
+    }
+    public void deleteThread(int userId, Long threadId) throws GeneralException {
+        int ok = threadRepo.deleteByCreatorIdAndThreadId(userId,threadId);
+        if(ok < 1) throw new GeneralException("401: Either you are not authorized or no such thread exists");
     }
 
 }

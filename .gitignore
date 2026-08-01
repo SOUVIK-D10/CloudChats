@@ -35,3 +35,7 @@ build/
 ### env ###
 *.env
 *.bat
+
+logs/
+
+cloudchat-frontend/

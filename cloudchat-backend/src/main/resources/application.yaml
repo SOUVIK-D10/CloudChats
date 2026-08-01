@@ -33,3 +33,15 @@ software:
     refresh:
       secret: ${JWT_REFRESH_SECRET}
       life: ${JWT_REFRESH_LIFE}
+  cros:
+    allowed-origin: https://fluffy-lolly-682538.netlify.app, http://localhost:3000
+  
+logging:
+  level:
+    root: INFO
+    org.springframework.web: DEBUG
+    com.sopvlight.cloudchat_backend: DEBUG
+  file:
+    name: logs/cloudchat-backend.log
+    max-size: 100MB
+    max-history: 1000
